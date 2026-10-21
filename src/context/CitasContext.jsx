@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react'
 
 const CitasContext = createContext()
@@ -32,51 +33,52 @@ const citasIniciales = [
   }
 ]
 
-export function CitasProvider({ children }) {
+const obtenerCitasGuardadas = () => {
+  try {
+    const guardadas = localStorage.getItem('edumed_citas')
 
-  const [citas, setCitas] = useState(() => {
-    const citasGuardadas = localStorage.getItem('edumed_citas')
+    if (guardadas) {
+      const datos = JSON.parse(guardadas)
 
-    if (citasGuardadas) {
-      return JSON.parse(citasGuardadas)
+      if (Array.isArray(datos)) {
+        return datos
+      }
     }
+  } catch (error) {
+    console.error('No se pudieron recuperar las citas:', error)
+  }
 
-    return citasIniciales
-  })
+  return citasIniciales
+}
 
-  // Guardar las citas cada vez que cambien
+export function CitasProvider({ children }) {
+  const [citas, setCitas] = useState(obtenerCitasGuardadas)
+
   useEffect(() => {
-    localStorage.setItem(
-      'edumed_citas',
-      JSON.stringify(citas)
-    )
+    try {
+      localStorage.setItem('edumed_citas', JSON.stringify(citas))
+    } catch (error) {
+      console.error('No se pudieron guardar las citas:', error)
+    }
   }, [citas])
 
-
   const cancelarCita = (id) => {
-
-    setCitas((citasActuales) =>
-      citasActuales.map((cita) =>
+    setCitas((actuales) =>
+      actuales.map((cita) =>
         cita.id === id
-          ? {
-              ...cita,
-              estado: 'Cancelada'
-            }
+          ? { ...cita, estado: 'Cancelada' }
           : cita
       )
     )
-
   }
 
+  const reagendarCita = (id, nuevaFecha, nuevaHora) => {
+    if (!nuevaFecha || !nuevaHora) {
+      return false
+    }
 
-  const reagendarCita = (
-    id,
-    nuevaFecha,
-    nuevaHora
-  ) => {
-
-    setCitas((citasActuales) =>
-      citasActuales.map((cita) =>
+    setCitas((actuales) =>
+      actuales.map((cita) =>
         cita.id === id
           ? {
               ...cita,
@@ -88,21 +90,29 @@ export function CitasProvider({ children }) {
       )
     )
 
+    return true
   }
 
-
   const agregarCita = (nuevaCita) => {
+    if (
+      !nuevaCita.especialidad ||
+      !nuevaCita.medico ||
+      !nuevaCita.fecha ||
+      !nuevaCita.hora
+    ) {
+      return false
+    }
 
-    setCitas((citasActuales) => [
-      ...citasActuales,
+    setCitas((actuales) => [
+      ...actuales,
       {
         ...nuevaCita,
         id: Date.now()
       }
     ])
 
+    return true
   }
-
 
   return (
     <CitasContext.Provider
@@ -117,7 +127,6 @@ export function CitasProvider({ children }) {
     </CitasContext.Provider>
   )
 }
-
 
 export function useCitas() {
   return useContext(CitasContext)

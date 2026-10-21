@@ -1,39 +1,58 @@
+
 const API_URL = 'https://jsonplaceholder.typicode.com'
+
+async function solicitarAPI(url, opciones = {}) {
+  let respuesta
+
+  try {
+    respuesta = await fetch(url, {
+      ...opciones,
+      headers: {
+        'Content-Type': 'application/json',
+        ...opciones.headers
+      }
+    })
+  } catch (error) {
+    throw new Error(
+      'No se pudo conectar con el servidor. Revisa tu conexión a internet.'
+    )
+  }
+
+  if (!respuesta.ok) {
+    throw new Error(`Error del servidor: ${respuesta.status}`)
+  }
+
+  return respuesta.json()
+}
 
 export async function obtenerUsuarios() {
   try {
-    const respuesta = await fetch(`${API_URL}/users`)
-
-    if (!respuesta.ok) {
-      throw new Error('No se pudo obtener la información.')
-    }
-
-    const datos = await respuesta.json()
-
-    return datos
+    return await solicitarAPI(`${API_URL}/users`)
   } catch (error) {
-    console.error('Error en la API:', error)
+    console.error('Error al consultar usuarios:', error)
     throw error
   }
 }
 
 export async function crearReserva(reserva) {
+  if (
+    !reserva.especialidad ||
+    !reserva.medico ||
+    !reserva.fecha ||
+    !reserva.hora
+  ) {
+    throw new Error('Completa todos los datos de la reserva.')
+  }
+
   try {
-    const respuesta = await fetch(`${API_URL}/posts`, {
+    return await solicitarAPI(`${API_URL}/posts`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(reserva)
+      body: JSON.stringify({
+        title: `Reserva de ${reserva.especialidad}`,
+        body: JSON.stringify(reserva),
+        userId: 1
+      })
     })
-
-    if (!respuesta.ok) {
-      throw new Error('No se pudo crear la reserva.')
-    }
-
-    const datos = await respuesta.json()
-
-    return datos
   } catch (error) {
     console.error('Error al crear la reserva:', error)
     throw error
